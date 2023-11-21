@@ -66,7 +66,14 @@ class QueryA:
 
          items = []
          for item in db_data:
-              items.append(Item(id=item[0], name=item[1], height=item[2], width=item[3]))
+              items.append(
+                   Item(
+                        id=item[0], 
+                        name=item[1], 
+                        height=item[2], 
+                        width=item[3]
+                        )
+                    )
 
          return items
     
