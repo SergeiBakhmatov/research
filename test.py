@@ -56,7 +56,12 @@ class QueryA:
 
          users = []
          for user in db_data:
-              users.append(User(id=user[0], name=user[1]))
+              users.append(
+                   User(
+                        id=user[0], 
+                        name=user[1]
+                        )
+                    )
 
          return users
     
