@@ -1,10 +1,10 @@
 import strawberry
-from fastapi import FastAPI
-from strawberry.asgi import GraphQL
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from strawberry.fastapi import GraphQLRouter
 import psycopg2
 from psycopg2 import Error
-from typing import List, Tuple, Any
-
+from typing import List, Tuple, Any, Optional
 @strawberry.type
 class User:
     id: int | None
@@ -25,7 +25,11 @@ class NewItem:
     width: int | None
     price: int | None
 
-async def ex_from_db(table_name: str) -> List[Tuple[Any,]]:
+async def ex_from_db(
+          table_name: str, 
+          ids: List[int] = None, 
+          names: List[str] = None
+          ) -> List[Tuple[Any,]]:
     try:
             connection = psycopg2.connect(
                 user="admin", 
@@ -35,9 +39,19 @@ async def ex_from_db(table_name: str) -> List[Tuple[Any,]]:
                 database="db_postgres"
                 )
             cursor = connection.cursor()
-            postgreSQL_select_Query = "SELECT * FROM " + table_name
 
-            cursor.execute(postgreSQL_select_Query)
+            if ids and names:
+                postgreSQL_select_Query = "SELECT * FROM " + table_name + " WHERE id IN %s AND name IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(ids), tuple(names)))
+            elif ids:
+                postgreSQL_select_Query = "SELECT * FROM " + table_name + " WHERE id IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(ids),))
+            elif names:
+                postgreSQL_select_Query = "SELECT * FROM " + table_name + " WHERE name IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(names),))
+            else:
+                postgreSQL_select_Query = "SELECT * FROM " + table_name
+                cursor.execute(postgreSQL_select_Query)
 
             return cursor.fetchall()
     
@@ -51,8 +65,20 @@ async def ex_from_db(table_name: str) -> List[Tuple[Any,]]:
 @strawberry.type
 class QueryA:
     @strawberry.field(description="Return Users")
-    async def resolver_users(self) -> List[User]:
-         db_data = await ex_from_db(table_name="table_users")
+    async def resolver_users(
+         self, 
+         ids: Optional[List[int]] = None,
+         names: Optional[List[str]] = None
+         ) -> List[User]:
+         
+         if ids:
+            db_data = await ex_from_db(table_name="table_users", ids=ids)
+         elif names:
+            db_data = await ex_from_db(table_name="table_users", names=names)
+         elif ids and names:
+            db_data = await ex_from_db(table_name="table_users", ids=ids, names=names)
+         else:
+            db_data = await ex_from_db(table_name="table_users")
 
          users = []
          for user in db_data:
@@ -101,10 +127,10 @@ class QueryA:
          return new_items
 
 schema_a = strawberry.Schema(query=QueryA)
+graphql_app = GraphQLRouter(schema=schema_a)
 
 app = FastAPI()
-
-app.add_route("/graphql/a", GraphQL(schema=schema_a))
+app.include_router(graphql_app, prefix="/graphql/a")
 
 if __name__ == "__main__":
     import uvicorn
