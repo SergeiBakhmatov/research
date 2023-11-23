@@ -5,6 +5,7 @@ from strawberry.fastapi import GraphQLRouter
 import psycopg2
 from psycopg2 import Error
 from typing import List, Tuple, Any, Optional
+
 @strawberry.type
 class User:
     id: int | None
