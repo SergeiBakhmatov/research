@@ -71,12 +71,12 @@ class QueryA:
          names: Optional[List[str]] = None
          ) -> List[User]:
          
-         if ids:
+         if ids and names:
+            db_data = await ex_from_db(table_name="table_users", ids=ids, names=names)
+         elif ids:
             db_data = await ex_from_db(table_name="table_users", ids=ids)
          elif names:
             db_data = await ex_from_db(table_name="table_users", names=names)
-         elif ids and names:
-            db_data = await ex_from_db(table_name="table_users", ids=ids, names=names)
          else:
             db_data = await ex_from_db(table_name="table_users")
 
