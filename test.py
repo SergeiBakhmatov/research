@@ -26,6 +26,26 @@ class NewItem:
     width: int | None
     price: int | None
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def fake_decode_token(token: str):
+     if token == "1234":
+        return {"username": "user1"} 
+     return None
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+     
+     user = fake_decode_token(token)
+
+     if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+     
+     return user
+
 async def ex_from_db(
           table_name: str, 
           ids: List[int] = None, 
@@ -131,7 +151,7 @@ schema_a = strawberry.Schema(query=QueryA)
 graphql_app = GraphQLRouter(schema=schema_a)
 
 app = FastAPI()
-app.include_router(graphql_app, prefix="/graphql/a")
+app.include_router(graphql_app, prefix="/graphql/a", dependencies=[Depends(get_current_user)])
 
 if __name__ == "__main__":
     import uvicorn
