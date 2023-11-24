@@ -76,6 +76,56 @@ async def ex_from_db_table_users(
                 cursor.close()
                 connection.close()
 
+async def ex_from_db_table_items( 
+          ids: List[int] = None, 
+          names: List[str] = None,
+          heights: List[int] = None,
+          widths: List[int] = None
+          ) -> List[Tuple[Any,]]:
+    try:
+            connection = psycopg2.connect(
+                user="admin", 
+                password="root", 
+                host="127.0.0.1", 
+                port="5432", 
+                database="db_postgres"
+                )
+            cursor = connection.cursor()
+
+            if ids and names and heights and widths:
+                postgreSQL_select_Query = "SELECT * FROM table_items WHERE id IN %s AND name IN %s AND height IN %s AND widths IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(ids), tuple(names), tuple(heights), tuple(widths)))
+            elif ids and names and heights:
+                postgreSQL_select_Query = "SELECT * FROM table_items WHERE id IN %s AND name IN %s AND height IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(ids), tuple(names), tuple(heights)))
+            elif ids and names:
+                postgreSQL_select_Query = "SELECT * FROM table_items WHERE id IN %s AND name IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(ids), tuple(names)))
+            elif ids:
+                postgreSQL_select_Query = "SELECT * FROM table_items WHERE id IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(ids),))
+            elif names:
+                postgreSQL_select_Query = "SELECT * FROM table_items WHERE name IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(names),))
+            elif heights:
+                postgreSQL_select_Query = "SELECT * FROM table_items WHERE height IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(heights),))
+            elif widths:
+                postgreSQL_select_Query = "SELECT * FROM table_items WHERE width IN %s;"
+                cursor.execute(postgreSQL_select_Query, (tuple(widths),))
+            else:
+                postgreSQL_select_Query = "SELECT * FROM table_items"
+                cursor.execute(postgreSQL_select_Query)
+
+            return cursor.fetchall()
+    
+    except (Exception, Error) as error:
+            print("Ошибка при работе с PostgreSQL", error)
+    finally:
+            if connection:
+                cursor.close()
+                connection.close()
+
 @strawberry.type
 class QueryA:
     @strawberry.field(description="Return Users")
@@ -106,8 +156,30 @@ class QueryA:
          return users
     
     @strawberry.field(description="Return Items")
-    async def resolver_items(self) -> List[Item]:
-         db_data = await ex_from_db(table_name="table_items")
+    async def resolver_items(
+         self, 
+         ids: Optional[List[int]] = None,
+         names: Optional[List[str]] = None,
+         heights: Optional[List[int]] = None,
+         widths: Optional[List[int]] = None
+         ) -> List[Item]:
+
+         if ids and names and heights and widths:
+            db_data = await ex_from_db_table_items(ids=ids, names=names, heights=heights, widths=widths)
+         elif ids and names and heights:
+            db_data = await ex_from_db_table_items(ids=ids, names=names, heights=heights)
+         elif ids and names:
+            db_data = await ex_from_db_table_items(ids=ids, names=names)
+         elif ids:
+            db_data = await ex_from_db_table_items(ids=ids)
+         elif names:
+            db_data = await ex_from_db_table_items(names=names)
+         elif heights:
+            db_data = await ex_from_db_table_items(heights=heights)
+         elif widths:
+            db_data = await ex_from_db_table_items(widths=widths)
+         else:
+            db_data = await ex_from_db_table_items()
 
          items = []
          for item in db_data:
@@ -124,7 +196,7 @@ class QueryA:
     
     @strawberry.field(description="Return New items")
     async def resolver_new_items(self) -> List[NewItem]:
-         db_data = await ex_from_db(table_name="table_new_items")
+         db_data = await ex_from_db_table_items()
 
          new_items = []
          for new_item in db_data:
