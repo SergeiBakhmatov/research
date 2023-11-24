@@ -12,18 +12,12 @@ class User:
     name: str | None
 
 @strawberry.type
-class Item:
-    id: int | None
-    name: str | None
+class Item(User):
     height: int | None
     width: int | None
 
 @strawberry.type
-class NewItem:
-    id: int | None
-    name: str | None
-    height: int | None
-    width: int | None
+class NewItem(Item):
     price: int | None
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -46,8 +40,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
      
      return user
 
-async def ex_from_db(
-          table_name: str, 
+async def ex_from_db_table_users( 
           ids: List[int] = None, 
           names: List[str] = None
           ) -> List[Tuple[Any,]]:
@@ -62,16 +55,16 @@ async def ex_from_db(
             cursor = connection.cursor()
 
             if ids and names:
-                postgreSQL_select_Query = "SELECT * FROM " + table_name + " WHERE id IN %s AND name IN %s;"
+                postgreSQL_select_Query = "SELECT * FROM table_users WHERE id IN %s AND name IN %s;"
                 cursor.execute(postgreSQL_select_Query, (tuple(ids), tuple(names)))
             elif ids:
-                postgreSQL_select_Query = "SELECT * FROM " + table_name + " WHERE id IN %s;"
+                postgreSQL_select_Query = "SELECT * FROM table_users WHERE id IN %s;"
                 cursor.execute(postgreSQL_select_Query, (tuple(ids),))
             elif names:
-                postgreSQL_select_Query = "SELECT * FROM " + table_name + " WHERE name IN %s;"
+                postgreSQL_select_Query = "SELECT * FROM table_users WHERE name IN %s;"
                 cursor.execute(postgreSQL_select_Query, (tuple(names),))
             else:
-                postgreSQL_select_Query = "SELECT * FROM " + table_name
+                postgreSQL_select_Query = "SELECT * FROM table_users"
                 cursor.execute(postgreSQL_select_Query)
 
             return cursor.fetchall()
@@ -93,13 +86,13 @@ class QueryA:
          ) -> List[User]:
          
          if ids and names:
-            db_data = await ex_from_db(table_name="table_users", ids=ids, names=names)
+            db_data = await ex_from_db_table_users(ids=ids, names=names)
          elif ids:
-            db_data = await ex_from_db(table_name="table_users", ids=ids)
+            db_data = await ex_from_db_table_users(ids=ids)
          elif names:
-            db_data = await ex_from_db(table_name="table_users", names=names)
+            db_data = await ex_from_db_table_users(names=names)
          else:
-            db_data = await ex_from_db(table_name="table_users")
+            db_data = await ex_from_db_table_users()
 
          users = []
          for user in db_data:
