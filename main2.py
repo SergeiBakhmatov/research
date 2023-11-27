@@ -19,7 +19,7 @@ class Item(User):
 @strawberry.type
 class NewItem(Item):
     price: int | None
-
+    
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def fake_decode_token(token: str):
@@ -50,10 +50,10 @@ def generates_sql_query(table, **kwargs):
     clear_sql_query = full_sql_query.replace(',)', ')')
     return clear_sql_query
 
-async def ex_from_db_table_users(
-          table_name: str, 
-          id_in_db: List[int] = None, 
-          name_in_db: List[str] = None
+async def ex_from_db_table_users( 
+          table: str,
+          id_db: Optional[List[int]] = None,
+          name_db: Optional[List[str]] = None
           ) -> List[Tuple[Any,]]:
     try:
             connection = psycopg2.connect(
@@ -65,16 +65,33 @@ async def ex_from_db_table_users(
                 )
             cursor = connection.cursor()
 
-            if id_in_db and name_in_db:
-                postgreSQL_select_query = generates_sql_query(table=table_name, id=id_in_db, name=name_in_db)
-            elif id_in_db:
-                postgreSQL_select_query = generates_sql_query(table=table_name, id=id_in_db)
-            elif name_in_db:
-                postgreSQL_select_query = generates_sql_query(table=table_name, name=name_in_db)
+            if id_db and name_db:
+                postgreSQL_select_Query = generates_sql_query(table=table, id=id_db, name=name_db)
+                print(postgreSQL_select_Query)
+            elif id_db:
+                postgreSQL_select_Query = generates_sql_query(table=table, id=id_db)
+                print(postgreSQL_select_Query)
+            elif name_db:
+                postgreSQL_select_Query = generates_sql_query(table=table, name=name_db)
+                print(postgreSQL_select_Query)
             else:
-                postgreSQL_select_query = generates_sql_query(table=table_name)
+                postgreSQL_select_Query = generates_sql_query(table=table)
 
-            cursor.execute(postgreSQL_select_query)
+            cursor.execute(postgreSQL_select_Query)
+            
+
+            #if ids and names:
+             #   postgreSQL_select_Query = "SELECT * FROM table_users WHERE id IN %s AND name IN %s;"
+              #  cursor.execute(postgreSQL_select_Query, (tuple(ids), tuple(names)))
+            #elif ids:
+             #   postgreSQL_select_Query = "SELECT * FROM table_users WHERE id IN %s;"
+              #  cursor.execute(postgreSQL_select_Query, (tuple(ids),))
+            #elif names:
+             #   postgreSQL_select_Query = "SELECT * FROM table_users WHERE name IN %s;"
+              #  cursor.execute(postgreSQL_select_Query, (tuple(names),))
+            #else:
+             #   postgreSQL_select_Query = "SELECT * FROM table_users"
+              #  cursor.execute(postgreSQL_select_Query)
 
             return cursor.fetchall()
     
@@ -143,8 +160,17 @@ class QueryA:
          ids: Optional[List[int]] = None,
          names: Optional[List[str]] = None
          ) -> List[User]:
+
+         db_data = await ex_from_db_table_users(table="table_users", id_db=ids, name_db=names)
          
-         db_data = await ex_from_db_table_users(table_name="table_users", id_in_db=ids, name_in_db=names)
+         #if ids and names:
+          #  db_data = await ex_from_db_table_users(ids=ids, names=names)
+         #elif ids:
+          #  db_data = await ex_from_db_table_users(ids=ids)
+         #elif names:
+          #  db_data = await ex_from_db_table_users(names=names)
+         #else:
+          #  db_data = await ex_from_db_table_users()
 
          users = []
          for user in db_data:
