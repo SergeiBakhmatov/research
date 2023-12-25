@@ -1,5 +1,7 @@
+"""Пример использования GraphQL с fastAPI"""
+
 import strawberry
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordBearer
 from strawberry.fastapi import GraphQLRouter
 import psycopg2
@@ -8,11 +10,25 @@ from typing import List, Tuple, Any, Optional
 
 @strawberry.type
 class User:
+    """Объект схемы GraphQL User.
+
+    :param id: integer | None - Айди объекта
+    :param name: string | None - Имя объекта
+    """
+
     id: int | None
     name: str | None
 
 @strawberry.type
 class Item(User):
+    """Объект схемы GraphQL Item.
+
+    :param id: integer | None - Айди объекта
+    :param name: string | None - Имя объекта
+    :param height: integer | None - Высота объекта
+    :param width: integer | None - Ширина объекта
+    """
+
     height: int | None
     width: int | None
 
@@ -136,7 +152,27 @@ async def ex_from_db_table_items(
                 connection.close()
 
 @strawberry.type
-class QueryA:
+class Query:
+    """Схема запроса GraphQL. \n
+        Пример запроса:
+            query{
+                resolverUsers(ids:[12]){ \n
+                    id \n
+                    name \n
+                }
+             }
+        Пример ответа:
+            {
+                "data": {
+                    "resolverUsers": [
+                        {
+                            "id": 12,\n
+                            "name": "Dima"
+                        }
+                    ]
+                }
+            }
+     """
     @strawberry.field(description="Return Users")
     async def resolver_users(
          self, 
@@ -144,6 +180,16 @@ class QueryA:
          names: Optional[List[str]] = None
          ) -> List[User]:
          
+         """Запрос на получение объектов User.
+
+         Arguments:
+            ids {Optional[List[integer]]} -- Айди требуемых пользователей. \n
+            names {Optional[List[string]]} -- Имена требуемых пользователей. \n
+
+         Returns:
+            users {List[User]} -- Список пользователей, соответствующий аргументам, иначе полный список пользователей.
+         """
+
          db_data = await ex_from_db_table_users(table_name="table_users", id_in_db=ids, name_in_db=names)
 
          users = []
@@ -214,11 +260,16 @@ class QueryA:
 
          return new_items
 
-schema_a = strawberry.Schema(query=QueryA)
+schema_a = strawberry.Schema(query=Query)
 graphql_app = GraphQLRouter(schema=schema_a)
 
 app = FastAPI()
-app.include_router(graphql_app, prefix="/graphql/a", dependencies=[Depends(get_current_user)])
+app.include_router(
+    graphql_app, 
+    prefix="/graphql/a",
+    include_in_schema=True, 
+    dependencies=[Depends(get_current_user)]
+    )
 
 if __name__ == "__main__":
     import uvicorn
